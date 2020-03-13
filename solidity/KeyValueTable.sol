@@ -2,11 +2,9 @@ pragma solidity ^0.4.24;
 pragma experimental ABIEncoderV2;
 
 import "./strings.sol";
-import "./Serializer.sol";
 
-contract KeyValueTable { {
+contract KeyValueTable {
     using strings for *;
-    using Serializer for *;
     
     struct Column {
         string name;
@@ -26,12 +24,9 @@ contract KeyValueTable { {
     mapping(string=>Row) rows;
     string[] rowNames;
     
-    struct TableModel {
-        string name;
-        string keyColumn;
-    }
+    string name;
+    string keyColumn;
     
-    TableModel tableModel;
     Column[] columns;
     Index[] indices;
     
@@ -39,8 +34,21 @@ contract KeyValueTable { {
     
     constructor(string _name, string _keyColumn) {
         key = "table:".toSlice().concat(_name.toSlice());
-        tableModel = TableModel(_name, _keyColumn);
+        name = _name;
+        keyColumn = _keyColumn;
         columns.push(Column(_keyColumn, "string"));
+    }
+    
+    function getName() public returns (
+        string
+    ) {
+        return name;
+    }
+    
+    function getKeyColumn() public returns (
+        string
+    ) {
+        return keyColumn;
     }
     
     function createIndexGroupName(
@@ -67,11 +75,11 @@ contract KeyValueTable { {
         string
     ) {
         string memory s0 = "{\n\t\"name\" : \"";
-        string memory s1 = s0.toSlice().concat(tableModel.name.toSlice());
+        string memory s1 = s0.toSlice().concat(name.toSlice());
         string memory s2 = s1.toSlice().concat("\",\n\t\"columns\" : [ ".toSlice());
         string memory s3 = s2.toSlice().concat(getColumnsInfo().toSlice());
         string memory s4 = s3.toSlice().concat(" ],\n\t\"keyColumn\" : \"".toSlice());
-        string memory s5 = s4.toSlice().concat(tableModel.keyColumn.toSlice());
+        string memory s5 = s4.toSlice().concat(keyColumn.toSlice());
         string memory s6 = s5.toSlice().concat("\",\n\t\"indices\" : [ ".toSlice());
         string memory s7 = s6.toSlice().concat(getIndexInfo().toSlice());
         string memory s8 = s7.toSlice().concat(" ]\n}".toSlice());
@@ -134,8 +142,8 @@ contract KeyValueTable { {
     }
     
     function create() public {
-        addColumn(tableModel.keyColumn, "string");
-        addIndex(tableModel.name, tableModel.keyColumn);
+        addColumn(keyColumn, "string");
+        addIndex(name, keyColumn);
         
     }
     
@@ -163,16 +171,31 @@ contract KeyValueTable { {
         }
         return false;
     }
+    
     function isNullColumn(
-        string _id
-    ) public view returns (
+        string _name
+    ) private view returns (
         bool
     ) {
-        bytes memory tmp = bytes(columns[_id].name);
+        Column memory tmpColumn = getColumn(_name);
+        bytes memory tmp = bytes(tmpColumn.name);
         if(tmp.length == 0) {
             return true;
         }
         return false;
+    }
+    
+    function getColumn(
+        string _name
+    ) private view returns (
+        Column
+    ) {
+        for(uint i=0; i<columns.length; i++) {
+            if(keccak256(columns[i].name) == keccak256(_name)) {
+                return columns[i];
+            }
+        }
+        return Column("", "");
     }
     
     function dropColumn(
@@ -215,15 +238,29 @@ contract KeyValueTable { {
     }
     
     function isNullIndex(
-        string _id
+        string _name
     ) public view returns (
         bool
     ) {
-        bytes memory tmp = bytes(indices[_id].name);
+        Index memory tmpIndex = getIndex(_name);
+        bytes memory tmp = bytes(tmpIndex.name);
         if(tmp.length == 0) {
             return true;
         }
         return false;
+    }
+    
+    function getIndex(
+        string _name
+    ) private view returns (
+        Index
+    ) {
+        for(uint i=0; i<indices.length; i++) {
+            if(keccak256(indices[i].name) == keccak256(_name)) {
+                return indices[i];
+            }
+        }
+        return Index("", "");
     }
     
     function dropIndex(
