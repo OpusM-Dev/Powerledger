@@ -5,52 +5,52 @@ import "./strings.sol";
 
 contract KeyValueTable {
     using strings for *;
-    
+
     struct Column {
         string name;
         string _type;
     }
-    
+
     struct Index {
         string name;
         string column;
     }
-    
+
     struct Row {
         string name;
         string value;
     }
-    
+
     mapping(string=>Row) rows;
     string[] rowNames;
-    
+
     string name;
     string keyColumn;
-    
+
     Column[] columns;
     Index[] indices;
-    
+
     string public key;
-    
+
     constructor(string _name, string _keyColumn) {
         key = "table:".toSlice().concat(_name.toSlice());
         name = _name;
         keyColumn = _keyColumn;
         columns.push(Column(_keyColumn, "string"));
     }
-    
+
     function getName() public returns (
         string
     ) {
         return name;
     }
-    
+
     function getKeyColumn() public returns (
         string
     ) {
         return keyColumn;
     }
-    
+
     function createIndexGroupName(
         string _name
     ) public view returns (
@@ -60,7 +60,7 @@ contract KeyValueTable {
         string memory result = s1.toSlice().concat(_name.toSlice());
         return result;
     }
-    
+
     function createRowKey(
         string _keyColumnValue
     ) public view returns (
@@ -70,7 +70,7 @@ contract KeyValueTable {
         string memory result = s1.toSlice().concat(_keyColumnValue.toSlice());
         return result;
     }
-    
+
     function getModel() public view returns (
         string
     ) {
@@ -83,10 +83,10 @@ contract KeyValueTable {
         string memory s6 = s5.toSlice().concat("\",\n\t\"indices\" : [ ".toSlice());
         string memory s7 = s6.toSlice().concat(getIndexInfo().toSlice());
         string memory s8 = s7.toSlice().concat(" ]\n}".toSlice());
-        
+
         return s8;
     }
-    
+
     function getIndexInfo() private view returns (
         string
     ) {
@@ -102,7 +102,7 @@ contract KeyValueTable {
                 string memory s2 = s1.toSlice().concat("\",\n\t\t\"type\" : \"".toSlice());
                 string memory s3 = s2.toSlice().concat(indices[i].column.toSlice());
                 string memory s4 = s3.toSlice().concat("\"\n\t}".toSlice());
-            
+
                 if( (i + 1) != indices.length ) {
                     tmp = s4.toSlice().concat(", ".toSlice());
                 } else {
@@ -113,7 +113,7 @@ contract KeyValueTable {
         }
         return result;
     }
-    
+
     function getColumnsInfo() private view returns (
         string
     ) {
@@ -129,7 +129,7 @@ contract KeyValueTable {
                 string memory s2 = s1.toSlice().concat("\",\n\t\t\"type\" : \"".toSlice());
                 string memory s3 = s2.toSlice().concat(columns[i]._type.toSlice());
                 string memory s4 = s3.toSlice().concat("\"\n\t}".toSlice());
-            
+
                 if( (i + 1) != columns.length ) {
                     tmp = s4.toSlice().concat(", ".toSlice());
                 } else {
@@ -140,15 +140,14 @@ contract KeyValueTable {
         }
         return result;
     }
-    
+
     function create() public {
         addColumn(keyColumn, "string");
         addIndex(name, keyColumn);
-        
     }
-    
+
     //////////////////////////////////////////////////////////////////////////////
-    
+
     function addColumn(
         string _name,
         string _type
@@ -158,7 +157,7 @@ contract KeyValueTable {
         require(existColumn(_name) == false);
         columns.push(Column(_name,_type));
     }
-    
+
     function existColumn(
         string _name
     ) private returns (
@@ -171,7 +170,7 @@ contract KeyValueTable {
         }
         return false;
     }
-    
+
     function isNullColumn(
         string _name
     ) private view returns (
@@ -184,7 +183,7 @@ contract KeyValueTable {
         }
         return false;
     }
-    
+
     function getColumn(
         string _name
     ) private view returns (
@@ -197,7 +196,7 @@ contract KeyValueTable {
         }
         return Column("", "");
     }
-    
+
     function dropColumn(
         string _name
     ) public returns (
@@ -211,9 +210,9 @@ contract KeyValueTable {
         }
         return "Drop Column Fail";
     }
-    
+
     //////////////////////////////////////////////////////////////////////////////
-    
+
     function addIndex(
         string _name,
         string _column
@@ -223,7 +222,7 @@ contract KeyValueTable {
         require(existIndex(_name) == false);
         indices.push(Index(_name, _column));
     }
-    
+
     function existIndex(
         string _name
     ) private returns (
@@ -236,7 +235,7 @@ contract KeyValueTable {
         }
         return false;
     }
-    
+
     function isNullIndex(
         string _name
     ) public view returns (
@@ -249,7 +248,7 @@ contract KeyValueTable {
         }
         return false;
     }
-    
+
     function getIndex(
         string _name
     ) private view returns (
@@ -262,7 +261,7 @@ contract KeyValueTable {
         }
         return Index("", "");
     }
-    
+
     function dropIndex(
         string _name,
         string _column
@@ -303,7 +302,7 @@ contract KeyValueTable {
     ) {
         require( existRow(_id) == true);
         rows[_id] = Row("", "");
-        
+
         for(uint i=0; i<rowNames.length; i++) {
             if(keccak256(rowNames[i]) == keccak256(_id)) {
                 delete(rowNames[i]);
@@ -312,7 +311,7 @@ contract KeyValueTable {
         }
         return "Remove Row Fail";
     }
-    
+
     function get(
         string _id
     ) public view returns (
@@ -322,7 +321,7 @@ contract KeyValueTable {
         require( existRow(_id) == true );
         return (rows[_id].name, rows[_id].value);
     }
-    
+
     function existRow(
         string _id
     ) public view returns (
@@ -334,7 +333,7 @@ contract KeyValueTable {
         }
         return true;
     }
-    
+
     /**
      * 있으면 갱신하고, 없으면 에러
      */
@@ -347,21 +346,21 @@ contract KeyValueTable {
         require( existRow(_id) == true);
         rows[_id] = Row(_id, _value);
     }
-    
+
     function keys() public view returns (
         string[]
     ) {
         string[] result;
-        
+
         for(uint i=0; i<columns.length; i++) {
             string memory groupName = createRowKey(columns[i].name);
             string memory tmpKey = key.toSlice().concat(groupName.toSlice());
             result.push(tmpKey);
         }
-        
+
         return result;
     }
-    
+
     function getAllRows() public view returns (
         string[] // Row[]
     ) {
@@ -376,41 +375,41 @@ contract KeyValueTable {
     // ) public returns (
     //     Iterator<Row>
     // ) {
-        
+
     // }
-    
+
     // function findWithIndex(
-    //     Index _index, 
+    //     Index _index,
     //     ValueRange[] _range
     // ) public returns (
     //     Iterator<Row>
     // ) {
-        
+
     // }
-    
+
     // function findWithoutIndex(
     //     string _column,
     //     ValueRange[] _range
     // ) public returns (
     //     Iterator<Row>
     // ) {
-        
+
     // }
-    
+
     // function updateTableMetadata()
     ////////////////////////////////////
     function addRowToIndex(
-        // Row _row, 
+        // Row _row,
         // TableModel _tableModel
     ) public {
-        
+
     }
-    
+
     function removeRowFromIndex(
         // Row _row,
         // TableModel _tableModel
     ) public {
-        
+
     }
-    
+
 }
