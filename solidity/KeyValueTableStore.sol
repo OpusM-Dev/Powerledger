@@ -1,35 +1,35 @@
 pragma solidity ^0.4.24;
 pragma experimental ABIEncoderV2;
 
-import "./KeyValueTable.sol";
-
 contract KeyValueTableStore {
-    mapping(string=>KeyValueTable) tables;
+    // Key : Name / Value : CA
+    mapping(string=>string) tables;
+    // Store 안에 있는 Table들의 이름을 저장하는 배열
     string[] tableNames;
-
+    
     function get(
         string _name
     ) public view returns (
-        KeyValueTable
+        string
     ) {
-        bytes memory tmp = bytes(tables[_name].getName());
+        bytes memory tmp = bytes(tables[_name]);
         if(tmp.length == 0) {
             return tables[_name];
         }
-        return new KeyValueTable("", "");
+        return "";
     }
-
+    
+    /**
+     * JS에서 create 함수 호출하기 전에 KeyValueTable.sol을 배포하고 나온 CA를 매개변수로 전달해야 한다.
+     */
     function create(
         string _name,
-        string _keyColumn
+        string _address
     ) public {
-        tables[_name] = new KeyValueTable(
-            _name,
-            _keyColumn
-        );
+        tables[_name] = _address;
         tableNames.push(_name);
     }
-
+    
     function dropTable(
         string _name
     ) public returns (
@@ -38,18 +38,18 @@ contract KeyValueTableStore {
         for(uint i=0; i<tableNames.length; i++) {
             bytes memory tmp = bytes(tableNames[i]);
             require(tmp.length != 0);
-
+            
             if(keccak256(tableNames[i]) == keccak256(_name)) {
                 delete(tableNames[i]);
                 delete(tables[_name]);
             }
         }
     }
-
+    
     function getTableNames() public returns (
         string[]
     ) {
         return tableNames;
     }
-
+    
 }
