@@ -13,7 +13,7 @@ contract KeyValueTableStore {
         string
     ) {
         bytes memory tmp = bytes(tables[_name]);
-        if(tmp.length == 0) {
+        if(tmp.length != 0) {
             return tables[_name];
         }
         return "";
@@ -26,6 +26,10 @@ contract KeyValueTableStore {
         string _name,
         string _address
     ) public {
+        bytes memory tmp = bytes(tables[_name]);
+        
+        require(tmp.length == 0);
+        
         tables[_name] = _address;
         tableNames.push(_name);
     }
@@ -36,17 +40,17 @@ contract KeyValueTableStore {
         string
     ) {
         for(uint i=0; i<tableNames.length; i++) {
-            bytes memory tmp = bytes(tableNames[i]);
-            require(tmp.length != 0);
-            
             if(keccak256(tableNames[i]) == keccak256(_name)) {
                 delete(tableNames[i]);
                 delete(tables[_name]);
+                
+                return ("dropTable Success");
             }
         }
+        return "dropTable Fail";
     }
     
-    function getTableNames() public returns (
+    function getTableNames() public view returns (
         string[]
     ) {
         return tableNames;
