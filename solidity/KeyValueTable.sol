@@ -2,6 +2,7 @@ pragma solidity ^0.4.24;
 pragma experimental ABIEncoderV2;
 
 import "./strings.sol";
+import { Math } from "./Math.sol";
 
 contract KeyValueTable {
     using strings for *;
@@ -15,42 +16,84 @@ contract KeyValueTable {
         string name;
         string column;
     }
+
+    /////////AVL TREE
     
-    struct Row {
-        string name;
+    struct Node {
         string value;
+        string left;
+        string right;
+        uint256 height;
     }
+  
+    mapping (string => Node) private tree; 
+    string private root = "0";
+    uint256 public currentSize = 0;
     
-    mapping(string=>Row) rows;
+    /////////////
+    
+    // Store 안에 있는 Table들의 이름을 저장하는 배열
+    string[] tableNames;
+    // Key : Table's name / Value : KeyColumn
+    mapping(string=>string) keyColumns;
+    mapping(string=>string) keys;
+    // Key : Table's name / Value : 
+    mapping(string=>Column[]) columns;
+    mapping(string=>Index[]) indices;
+    
+    mapping(string=>mapping(string=>string)) rows;
     string[] rowNames;
     
-    string name;
-    string keyColumn;
-    
-    Column[] columns;
-    Index[] indices;
-    
-    string public key;
-    
-    constructor(string _name, string _keyColumn) {
-        key = "table:".toSlice().concat(_name.toSlice());
-        name = _name;
-        keyColumn = _keyColumn;
-        columns.push(Column(_keyColumn, "string"));
+    constructor() public {
+    // NULL PTR node 
+        tree["0"] = Node({
+            value: "0",
+            left: "0",
+            right: "0",
+            height: 0
+        });
+        root = "0";
+    }
+    function createTable(
+        string _name, 
+        string _keyColumn
+    ) public {
+        bool tmp = existTable(_name);
+        require(tmp == false);
+        tableNames.push(_name);
+        keys[_name] = "table:".toSlice().concat(_name.toSlice());
+        
+        keyColumns[_name] = _keyColumn;
+        
+        // columns[_name].push(Column(_keyColumn, "string"));
+        // indices[_name].push(Index(_name, _keyColumn));
+        addColumn(_name, _keyColumn, "string");
+        addIndex(_name, _name, _keyColumn);
+        keys[_name] = "table:".toSlice().concat(_name.toSlice());
     }
     
-    function getName() public returns (
+    function existTable(
+        string _name
+    ) private returns (
+        bool
+    ) {
+        for(uint i=0; i<tableNames.length; i++) {
+            if(keccak256(tableNames[i]) == keccak256(_name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    function getKeyColumn(
+        string _tableName
+    ) public view returns (
         string
     ) {
-        return name;
+        return keyColumns[_tableName];
     }
     
-    function getKeyColumn() public returns (
-        string
-    ) {
-        return keyColumn;
-    }
-    
+    ////// 구현
     function createIndexGroupName(
         string _name
     ) public view returns (
@@ -61,9 +104,10 @@ contract KeyValueTable {
         return result;
     }
     
+    ////// 구현
     function createRowKey(
         string _keyColumnValue
-    ) public view returns (
+    ) private view returns (
         string
     ) {
         string memory s1 = ":key:";
@@ -71,140 +115,140 @@ contract KeyValueTable {
         return result;
     }
     
-    function getModel() public view returns (
+    function getModel(
+        string _name
+    ) public view returns (
         string
     ) {
         string memory s0 = "{\n\t\"name\" : \"";
-        string memory s1 = s0.toSlice().concat(name.toSlice());
+        string memory s1 = s0.toSlice().concat(_name.toSlice());
         string memory s2 = s1.toSlice().concat("\",\n\t\"columns\" : [ ".toSlice());
-        string memory s3 = s2.toSlice().concat(getColumnsInfo().toSlice());
+        string memory s3 = s2.toSlice().concat(getColumnsInfo(_name).toSlice());
         string memory s4 = s3.toSlice().concat(" ],\n\t\"keyColumn\" : \"".toSlice());
-        string memory s5 = s4.toSlice().concat(keyColumn.toSlice());
+        string memory s5 = s4.toSlice().concat(keyColumns[_name].toSlice());
         string memory s6 = s5.toSlice().concat("\",\n\t\"indices\" : [ ".toSlice());
-        string memory s7 = s6.toSlice().concat(getIndexInfo().toSlice());
+        string memory s7 = s6.toSlice().concat(getIndexInfo(_name).toSlice());
         string memory s8 = s7.toSlice().concat(" ]\n}".toSlice());
         
         return s8;
     }
     
-    function getIndexInfo() private view returns (
+    function getIndexInfo(
+        string _name
+    ) private view returns (
         string
     ) {
         string memory result;
         string memory tmp;
-        if(indices.length == 0) {
-            return "";
-        }
-        for(uint i=0; i<indices.length; i++) {
-            if(isNullIndex(indices[i].name) == false) {
-                string memory s0 = "{\n\t\t\"name\" : \"";
-                string memory s1 = s0.toSlice().concat(indices[i].name.toSlice());
-                string memory s2 = s1.toSlice().concat("\",\n\t\t\"type\" : \"".toSlice());
-                string memory s3 = s2.toSlice().concat(indices[i].column.toSlice());
-                string memory s4 = s3.toSlice().concat("\"\n\t}".toSlice());
-            
-                if( (i + 1) != indices.length ) {
-                    tmp = s4.toSlice().concat(", ".toSlice());
-                } else {
-                    tmp = s4;
-                }
-                result = result.toSlice().concat(tmp.toSlice());
+        require(indices[_name].length != 0);
+        
+        for(uint i=0; i<indices[_name].length; i++) {
+            string memory s0 = "{\n\t\t\"name\" : \"";
+            string memory s1 = s0.toSlice().concat(indices[_name][i].name.toSlice());
+            string memory s2 = s1.toSlice().concat("\",\n\t\t\"type\" : \"".toSlice());
+            string memory s3 = s2.toSlice().concat(indices[_name][i].column.toSlice());
+            string memory s4 = s3.toSlice().concat("\"\n\t}".toSlice());
+                
+            if( (i + 1) != indices[_name].length ) {
+                tmp = s4.toSlice().concat(", ".toSlice());
+            } else {
+                tmp = s4;
             }
+            result = result.toSlice().concat(tmp.toSlice());
         }
         return result;
     }
     
-    function getColumnsInfo() private view returns (
+    function getColumnsInfo(
+        string _name
+    ) public view returns (
         string
     ) {
         string memory result;
         string memory tmp;
-        if(columns.length == 0) {
-            return "";
-        }
-        for(uint i=0; i<columns.length; i++) {
-            if(isNullColumn(columns[i].name) == false) {
-                string memory s0 = "{\n\t\t\"name\" : \"";
-                string memory s1 = s0.toSlice().concat(columns[i].name.toSlice());
-                string memory s2 = s1.toSlice().concat("\",\n\t\t\"type\" : \"".toSlice());
-                string memory s3 = s2.toSlice().concat(columns[i]._type.toSlice());
-                string memory s4 = s3.toSlice().concat("\"\n\t}".toSlice());
+        require(columns[_name].length != 0);
+        
+        for(uint i=0; i<columns[_name].length; i++) {
+            string memory s0 = "{\n\t\t\"name\" : \"";
+            string memory s1 = s0.toSlice().concat(columns[_name][i].name.toSlice());
+            string memory s2 = s1.toSlice().concat("\",\n\t\t\"type\" : \"".toSlice());
+            string memory s3 = s2.toSlice().concat(columns[_name][i]._type.toSlice());
+            string memory s4 = s3.toSlice().concat("\"\n\t}".toSlice());
             
-                if( (i + 1) != columns.length ) {
-                    tmp = s4.toSlice().concat(", ".toSlice());
-                } else {
-                    tmp = s4;
-                }
-                result = result.toSlice().concat(tmp.toSlice());
+            if( (i + 1) != columns[_name].length ) {
+                tmp = s4.toSlice().concat(", ".toSlice());
+            } else {
+                tmp = s4;
             }
+            result = result.toSlice().concat(tmp.toSlice());
         }
         return result;
-    }
-    
-    function create() public {
-        addColumn(keyColumn, "string");
-        addIndex(name, keyColumn);
     }
     
     //////////////////////////////////////////////////////////////////////////////
     
     function addColumn(
-        string _name,
+        string _tableName,
+        string _columnName,
         string _type
     ) public returns (
         string
     ) {
-        require(existColumn(_name) == false);
-        columns.push(Column(_name,_type));
+        require(existColumn(_tableName, _columnName) == false);
+        columns[_tableName].push(Column(_columnName,_type));
     }
     
     function existColumn(
-        string _name
+        string _tableName,
+        string _columnName
     ) private returns (
         bool
     ) {
-        for(uint i=0; i<columns.length; i++) {
-            if(keccak256(columns[i].name) == keccak256(_name)) {
+        for(uint i=0; i<columns[_tableName].length; i++) {
+            if(keccak256(columns[_tableName][i].name) == keccak256(_columnName)) {
                 return true;
             }
         }
         return false;
     }
     
-    function isNullColumn(
-        string _name
-    ) private view returns (
-        bool
-    ) {
-        Column memory tmpColumn = getColumn(_name);
-        bytes memory tmp = bytes(tmpColumn.name);
-        if(tmp.length == 0) {
-            return true;
-        }
-        return false;
-    }
-    
     function getColumn(
-        string _name
+        string _tableName,
+        string _columnName
     ) private view returns (
         Column
     ) {
-        for(uint i=0; i<columns.length; i++) {
-            if(keccak256(columns[i].name) == keccak256(_name)) {
-                return columns[i];
+        for(uint i=0; i<columns[_tableName].length; i++) {
+            if(keccak256(columns[_tableName][i].name) == keccak256(_columnName)) {
+                return columns[_tableName][i];
             }
         }
         return Column("", "");
     }
     
+    function isKeyColumn(
+        string _tableName,
+        string _columnName
+    ) private returns (
+        bool
+    ) {
+        if(keccak256(keyColumns[_tableName]) == keccak256(_columnName)) {
+            return true;
+        }
+        return false;
+    }
+    
     function dropColumn(
-        string _name
+        string _tableName,
+        string _columnName
     ) public returns (
         string
     ) {
-        for(uint i=0; i<columns.length; i++) {
-            if(keccak256(columns[i].name) == keccak256(_name)) {
-                delete(columns[i]);
+        require(isKeyColumn(_tableName, _columnName) == false);
+        
+        for(uint i=0; i<columns[_tableName].length; i++) {
+            if(keccak256(columns[_tableName][i].name) == keccak256(_columnName)) {
+                delete(columns[_tableName][i]);
                 return "Drop Column Success";
             }
         }
@@ -214,63 +258,55 @@ contract KeyValueTable {
     //////////////////////////////////////////////////////////////////////////////
     
     function addIndex(
-        string _name,
-        string _column
+        string _tableName,
+        string _indexName,
+        string _columnName
     ) public returns (
         string
     ) {
-        require(existIndex(_name) == false);
-        indices.push(Index(_name, _column));
+        require(existIndex(_tableName, _indexName) == false);
+        indices[_tableName].push(Index(_indexName, _columnName));
     }
     
     function existIndex(
-        string _name
+        string _tableName,
+        string _indexName
     ) private returns (
         bool
     ) {
-        for(uint i=0; i<indices.length; i++) {
-            if(keccak256(indices[i].name) == keccak256(_name)) {
+        for(uint i=0; i<indices[_tableName].length; i++) {
+            if(keccak256(indices[_tableName][i].name) == keccak256(_indexName)) {
                 return true;
             }
         }
         return false;
     }
     
-    function isNullIndex(
-        string _name
-    ) public view returns (
-        bool
-    ) {
-        Index memory tmpIndex = getIndex(_name);
-        bytes memory tmp = bytes(tmpIndex.name);
-        if(tmp.length == 0) {
-            return true;
-        }
-        return false;
-    }
-    
     function getIndex(
-        string _name
+        string _tableName,
+        string _indexName
     ) private view returns (
         Index
     ) {
-        for(uint i=0; i<indices.length; i++) {
-            if(keccak256(indices[i].name) == keccak256(_name)) {
-                return indices[i];
+        for(uint i=0; i<indices[_tableName].length; i++) {
+            if(keccak256(indices[_tableName][i].name) == keccak256(_indexName)) {
+                return indices[_tableName][i];
             }
         }
         return Index("", "");
     }
     
     function dropIndex(
-        string _name,
-        string _column
+        string _tableName,
+        string _indexName
     ) public returns (
         string
     ) {
-        for(uint i=0; i<indices.length; i++) {
-            if(keccak256(indices[i].name) == keccak256(_name)) {
-                delete(indices[i]);
+        require(isKeyColumn(_tableName, _indexName) == false);
+        
+        for(uint i=0; i<indices[_tableName].length; i++) {
+            if(keccak256(indices[_tableName][i].name) == keccak256(_indexName)) {
+                delete(indices[_tableName][i]);
                 return "Drop Index success";
             }
         }
@@ -281,30 +317,31 @@ contract KeyValueTable {
      * 없으면 추가하고, 있으면 에러
      */
     function add(
-        string _id,
+        string _name,
         string _column,
         string _value
     ) public returns (
         string
     ) {
-        require( existRow(_id) == false );
-        rows[_id] = Row(_column, _value);
-        rowNames.push(_id);
+        require( existValue(_name, _column) == false );
+        rows[_name][_column] = _value;
+        rowNames.push(_name);
         return "Add Row Success";
     }
     /**
      * 삭제한다.
      */
-    function remove(
-        string _id
+    function removeRow(
+        string _name
+        // string _column
     ) public returns (
         string
     ) {
-        require( existRow(_id) == true);
-        rows[_id] = Row("", "");
+        // require( existValue(_name) == true);
+        // rows[_id] = Row("", "");
         
         for(uint i=0; i<rowNames.length; i++) {
-            if(keccak256(rowNames[i]) == keccak256(_id)) {
+            if(keccak256(rowNames[i]) == keccak256(_name)) {
                 delete(rowNames[i]);
                 return "Remove Row Success";
             }
@@ -313,21 +350,22 @@ contract KeyValueTable {
     }
     
     function get(
-        string _id
+        string _name,
+        string _column
     ) public view returns (
-        string,
         string
     ) {
-        require( existRow(_id) == true );
-        return (rows[_id].name, rows[_id].value);
+        // require( existRow(_name) == true );
+        return rows[_name][_column];
     }
     
-    function existRow(
-        string _id
+    function existValue(
+        string _name,
+        string _column
     ) public view returns (
         bool
     ) {
-        bytes memory tmp = bytes(rows[_id].name);
+        bytes memory tmp = bytes(rows[_name][_column]);
         if(tmp.length == 0) {
             return false;
         }
@@ -338,30 +376,35 @@ contract KeyValueTable {
      * 있으면 갱신하고, 없으면 에러
      */
     function update(
-        string _id,
+        string _name,
+        string _column,
         string _value
     ) public returns (
         string
     ) {
-        require( existRow(_id) == true);
-        rows[_id] = Row(_id, _value);
+        require( existValue(_name, _column) == true);
+        rows[_name][_column] = _value;
     }
     
-    function keys() public view returns (
+    function keies(
+        string _name
+    ) public view returns (
         string[]
     ) {
         string[] result;
         
-        for(uint i=0; i<columns.length; i++) {
-            string memory groupName = createRowKey(columns[i].name);
-            string memory tmpKey = key.toSlice().concat(groupName.toSlice());
+        for(uint i=0; i<columns[_name].length; i++) {
+            string memory groupName = createRowKey(columns[_name][i].name);
+            string memory tmpKey = keys[_name].toSlice().concat(groupName.toSlice());
             result.push(tmpKey);
         }
         
         return result;
     }
     
-    function getAllRows() public view returns (
+    function getAllRows(
+        string _tableName
+    ) public view returns (
         string[] // Row[]
     ) {
         // string memory rowKey = createRowKey(key);
@@ -412,4 +455,9 @@ contract KeyValueTable {
         
     }
     
+    //////////////////////// AVL tree
+    
+   
+    
+    /////////////////////////////////
 }
