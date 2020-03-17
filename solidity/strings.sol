@@ -34,7 +34,7 @@
  *      corresponding to the left and right parts of the string.
  */
 
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 library strings {
     struct slice {
@@ -74,54 +74,23 @@ library strings {
         return slice(bytes(self).length, ptr);
     }
 
-    /*
-     * @dev Returns the length of a null-terminated bytes32 string.
-     * @param self The value to find the length of.
-     * @return The length of the string, from 0 to 32.
-     */
-    function len(bytes32 self) internal pure returns (uint) {
-        uint ret;
-        if (self == 0)
-            return 0;
-        if (self & 0xffffffffffffffffffffffffffffffff == 0) {
-            ret += 16;
-            self = bytes32(uint(self) / 0x100000000000000000000000000000000);
-        }
-        if (self & 0xffffffffffffffff == 0) {
-            ret += 8;
-            self = bytes32(uint(self) / 0x10000000000000000);
-        }
-        if (self & 0xffffffff == 0) {
-            ret += 4;
-            self = bytes32(uint(self) / 0x100000000);
-        }
-        if (self & 0xffff == 0) {
-            ret += 2;
-            self = bytes32(uint(self) / 0x10000);
-        }
-        if (self & 0xff == 0) {
-            ret += 1;
-        }
-        return 32 - ret;
-    }
-
-    /*
-     * @dev Returns a slice containing the entire bytes32, interpreted as a
-     *      null-terminated utf-8 string.
-     * @param self The bytes32 value to convert to a slice.
-     * @return A new slice containing the value of the input argument up to the
-     *         first null.
-     */
-    function toSliceB32(bytes32 self) internal pure returns (slice memory ret) {
-        // Allocate space for `self` in memory, copy it there, and point ret at it
-        assembly {
-            let ptr := mload(0x40)
-            mstore(0x40, add(ptr, 0x20))
-            mstore(ptr, self)
-            mstore(add(ret, 0x20), ptr)
-        }
-        ret._len = len(self);
-    }
+    // /*
+    //  * @dev Returns a slice containing the entire bytes32, interpreted as a
+    //  *      null-terminated utf-8 string.
+    //  * @param self The bytes32 value to convert to a slice.
+    //  * @return A new slice containing the value of the input argument up to the
+    //  *         first null.
+    //  */
+    // function toSliceB32(bytes32 self) internal pure returns (slice memory ret) {
+    //     // Allocate space for `self` in memory, copy it there, and point ret at it
+    //     assembly {
+    //         let ptr := mload(0x40)
+    //         mstore(0x40, add(ptr, 0x20))
+    //         mstore(ptr, self)
+    //         mstore(add(ret, 0x20), ptr)
+    //     }
+    //     ret._len = len(self);
+    // }
 
     /*
      * @dev Returns a new slice containing the same data as the current slice.
@@ -702,7 +671,7 @@ library strings {
         uint retptr;
         assembly { retptr := add(ret, 32) }
 
-        for(i = 0; i < parts.length; i++) {
+        for(uint i = 0; i < parts.length; i++) {
             memcpy(retptr, parts[i]._ptr, parts[i]._len);
             retptr += parts[i]._len;
             if (i < parts.length - 1) {

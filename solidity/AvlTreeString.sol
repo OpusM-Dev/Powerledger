@@ -1,6 +1,7 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import { Math } from "./Math.sol";
+import { AvlLib } from "./AvlLib.sol";
 
 contract AvlTreeString {
   struct Node {
@@ -15,8 +16,6 @@ contract AvlTreeString {
   uint256 public currentSize = 0;
   
   constructor() public {
-		
-    // NULL PTR node 
     tree["0"] = Node({
       value: "0",
       left: "0",
@@ -26,11 +25,11 @@ contract AvlTreeString {
     root = "0";
   }
     
-  function search(string value) public view returns (bool) {
-    require(compare(value, "0") < 0);
-    if (compare(root, "0") == 0) return false;
+  function search(string memory value) public view returns (bool) {
+    require(AvlLib.compare(value, "0") < 0);
+    if (AvlLib.compare(root, "0") == 0) return false;
     
-    int temp = compare(tree[value].value, "0");
+    int temp = AvlLib.compare(tree[value].value, "0");
     
     if(temp < 0) {
         return true;
@@ -38,74 +37,30 @@ contract AvlTreeString {
     return false;
   }
 
-  function insert(string value) public returns (string) {
-    require(compare(value, "0") < 0);
+  function insert(string memory value) public returns (string memory) {
+    require(AvlLib.compare(value, "0") < 0);
     root = _insert(root, value);
     currentSize++;
     return root;
   }
   
-  //should return bool ?
-  function remove(string value) public {
-    require(compare(value, "0") < 0);
+  function remove(string memory value) public {
+    require(AvlLib.compare(value, "0") < 0);
     root = _remove(root, value);
     currentSize--;
-  }
-
-  function getMax() public view returns (string) {
-    if (compare(root, "0") == 0) return "0";
-    string _root = root;
-    while (compare(tree[_root].right, "0") != 0) {
-      _root = tree[_root].right;
-    }
-    return tree[_root].value;
   }
   
-  function getMin() public view returns (string) {
-    if (compare(root, "0") == 0) return "0";
-    string _root = root;
-    while (compare(tree[_root].left, "0") != 0) {
-      _root = tree[_root].left;
-    }
-    return tree[_root].value;
-  }
-
-  function delMax() public returns (string) {
-    if (compare(root, "0") == 0) return "0";
-    string _root = root;
-    while (compare(tree[_root].right, "0") != 0) {
-      _root = tree[_root].right;
-    }
-    string value = tree[_root].value;
-    root = _remove(root, value);
-    currentSize--;
-    return value;
-  }
-  
-  function delMin() public returns (string) {
-    if (compare(root, "0") == 0) return "0";
-    string _root = root;
-    while (compare(tree[_root].left, "0") != 0) {
-      _root = tree[_root].left;
-    }
-    string value = tree[_root].value;
-    root = _remove(root, value);
-    currentSize--;
-    return value;
-  }
-
-  // temp helper function 
-  function getChilds(string index) public view  returns (string left, string right) {
+  function getChilds(string memory index) public view  returns (string memory left, string memory right) {
     left = tree[index].left;
     right = tree[index].right;
   }
 
-  function getRoot() public view returns(string) {
+  function getRoot() public view returns(string memory) {
     return tree[root].value;
   }
 
-  function _insert(string _root, string value) private returns (string) {
-    if (compare(_root, "0") == 0) {
+  function _insert(string memory _root, string memory value) private returns (string memory) {
+    if (AvlLib.compare(_root, "0") == 0) {
       tree[value] = Node({
         value: value,
         left: "0",
@@ -115,7 +70,7 @@ contract AvlTreeString {
       return value;
     }
 
-    if (compare(value, tree[_root].value) >= 0) {
+    if (AvlLib.compare(value, tree[_root].value) >= 0) {
       tree[_root].left = _insert(tree[_root].left, value);
     } else {
       tree[_root].right = _insert(tree[_root].right, value);
@@ -123,14 +78,14 @@ contract AvlTreeString {
     return balance(_root);
   }
 
-  function _remove(string _root, string value) private returns (string) {
-    string temp;
-    if (compare(_root, "0") == 0) {
+  function _remove(string memory _root, string memory value) private returns (string memory) {
+    string memory temp;
+    if (AvlLib.compare(_root, "0") == 0) {
       return _root;
     }
-    if (compare(tree[_root].value, value) == 0) {
-      if (compare(tree[_root].left, "0") == 0 || compare(tree[_root].right, "0") == 0) {
-        if (compare(tree[_root].left, "0") == 0) {
+    if (AvlLib.compare(tree[_root].value, value) == 0) {
+      if (AvlLib.compare(tree[_root].left, "0") == 0 || AvlLib.compare(tree[_root].right, "0") == 0) {
+        if (AvlLib.compare(tree[_root].left, "0") == 0) {
           temp = tree[_root].right;
         } else {
           temp = tree[_root].left;
@@ -138,7 +93,7 @@ contract AvlTreeString {
         tree[_root] = tree["0"];
         return temp;
       } else {
-        for (temp = tree[_root].right; compare(tree[temp].left, "0") != 0; temp = tree[temp].left){}
+        for (temp = tree[_root].right; AvlLib.compare(tree[temp].left, "0") != 0; temp = tree[temp].left){}
         tree[_root].value = tree[temp].value;
         tree[temp] = tree["0"];
         tree[_root].right = _remove(tree[_root].right, tree[temp].value);
@@ -146,7 +101,7 @@ contract AvlTreeString {
   		}
   	}
 
-    if (compare(value, tree[_root].value) > 0) {
+    if (AvlLib.compare(value, tree[_root].value) > 0) {
       tree[_root].left = _remove(tree[_root].left, value);
     } else {
       tree[_root].right = _remove(tree[_root].right, value);
@@ -154,34 +109,34 @@ contract AvlTreeString {
     return balance(_root);
   }
 
-  function rotateLeft(string _root) private returns (string)  {
-    string temp = tree[_root].left;
+  function rotateLeft(string memory _root) private returns (string memory)  {
+    string memory temp = tree[_root].left;
     tree[_root].left = tree[temp].right;
     tree[temp].right = _root;
-    if (compare(_root, "0") < 0) { 
+    if (AvlLib.compare(_root, "0") < 0) { 
       tree[_root].height = 1 + Math.max256(tree[tree[_root].left].height, tree[tree[_root].right].height);
     }
-    if (compare(temp, "0") < 0) { 
+    if (AvlLib.compare(temp, "0") < 0) { 
       tree[temp].height = 1 + Math.max256(tree[tree[temp].left].height, tree[tree[temp].right].height);
     }
     return temp;
   }
 
-  function rotateRight (string _root) private returns (string) {
-    string temp = tree[_root].right;
+  function rotateRight (string memory _root) private returns (string memory) {
+    string memory temp = tree[_root].right;
     tree[_root].right = tree[temp].left;
     tree[temp].left = _root;
-    if (compare(_root, "0") < 0) { 
+    if (AvlLib.compare(_root, "0") < 0) { 
       tree[_root].height = 1 + Math.max256(tree[tree[_root].left].height, tree[tree[_root].right].height);
     }
-    if (compare(temp, "0") < 0) { 
+    if (AvlLib.compare(temp, "0") < 0) { 
       tree[temp].height = 1 + Math.max256(tree[tree[temp].left].height, tree[tree[temp].right].height);
     }
     return temp;
   }
 
-  function balance(string _root) private returns (string) { 
-    if (compare(_root, "0") < 0) {
+  function balance(string memory _root) private returns (string memory) { 
+    if (AvlLib.compare(_root, "0") < 0) {
       tree[_root].height = 1 + Math.max256(tree[tree[_root].left].height, tree[tree[_root].right].height);
     }
     if (tree[tree[_root].left].height > tree[tree[_root].right].height + 1) {		
@@ -197,34 +152,4 @@ contract AvlTreeString {
     }
     return _root;
   }
-  
-  function compare(string _a, string _b) private pure returns (int) {
-        bytes memory a = bytes(_a);
-        bytes memory b = bytes(_b);
-        require(a.length != 0);
-        require(b.length != 0);
-        uint length;
-        uint result = 0;
-        if(a.length <= b.length) {
-            length = a.length;
-        } else {
-            length = b.length;
-        }
-      
-        for(uint i=0; i<length; i++) {
-            if(a[i] > b[i]) {
-                return -1;
-            } 
-            else if(a[i] < b[i]) {
-                return 1;
-            }
-        }
-        if(a.length > b.length) {
-            return -1;
-        } 
-        if(a.length < b.length) {
-            return 1;
-        }
-        return 0;
-    }
 }

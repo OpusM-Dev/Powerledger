@@ -1,16 +1,16 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 contract KeyValueTableStore {
     // Key : Name / Value : Table metadata
-    mapping(string=>string) tables;
+    mapping(string=>string) private tables;
     // Store 안에 있는 Table들의 이름을 저장하는 배열
-    string[] tableNames;
+    string[] private tableNames;
     
     function get(
-        string _name
+        string memory _name
     ) public view returns (
-        string
+        string memory
     ) {
         bytes memory tmp = bytes(tables[_name]);
         if(tmp.length != 0) {
@@ -20,8 +20,8 @@ contract KeyValueTableStore {
     }
     
     function set(
-        string _name,
-        string _data
+        string memory _name,
+        string memory _data
     ) public {
         bytes memory tmp = bytes(tables[_name]);
         
@@ -32,10 +32,11 @@ contract KeyValueTableStore {
     }
     
     function remove(
-        string _name
+        string memory _name
     ) public {
         for(uint i=0; i<tableNames.length; i++) {
-            if(keccak256(tableNames[i]) == keccak256(_name)) {
+            string memory tmp = tableNames[i];
+            if(keccak256(abi.encodePacked(tmp)) == keccak256(abi.encodePacked(_name))) {
                 delete(tableNames[i]);
                 delete(tables[_name]);
             }
@@ -43,7 +44,7 @@ contract KeyValueTableStore {
     }
     
     function getTableNames() public view returns (
-        string[]
+        string[] memory
     ) {
         return tableNames;
     }

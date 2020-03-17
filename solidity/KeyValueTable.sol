@@ -1,8 +1,9 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import "./strings.sol";
 import { Math } from "./Math.sol";
+import { AvlLib } from "./AvlLib.sol";
 
 contract KeyValueTable {
     using strings for *;
@@ -16,21 +17,6 @@ contract KeyValueTable {
         string name;
         string column;
     }
-
-    /////////AVL TREE
-    
-    struct Node {
-        string value;
-        string left;
-        string right;
-        uint256 height;
-    }
-  
-    mapping (string => Node) private tree; 
-    string private root = "0";
-    uint256 public currentSize = 0;
-    
-    /////////////
     
     // Store 안에 있는 Table들의 이름을 저장하는 배열
     string[] tableNames;
@@ -44,19 +30,9 @@ contract KeyValueTable {
     mapping(string=>mapping(string=>string)) rows;
     string[] rowNames;
     
-    constructor() public {
-    // NULL PTR node 
-        tree["0"] = Node({
-            value: "0",
-            left: "0",
-            right: "0",
-            height: 0
-        });
-        root = "0";
-    }
     function createTable(
-        string _name, 
-        string _keyColumn
+        string memory _name, 
+        string memory _keyColumn
     ) public {
         bool tmp = existTable(_name);
         require(tmp == false);
@@ -73,12 +49,12 @@ contract KeyValueTable {
     }
     
     function existTable(
-        string _name
+        string memory _name
     ) private returns (
         bool
     ) {
         for(uint i=0; i<tableNames.length; i++) {
-            if(keccak256(tableNames[i]) == keccak256(_name)) {
+            if(keccak256(abi.encodePacked(tableNames[i])) == keccak256(abi.encodePacked(_name))) {
                 return true;
             }
         }
@@ -86,18 +62,18 @@ contract KeyValueTable {
     }
     
     function getKeyColumn(
-        string _tableName
+        string memory _tableName
     ) public view returns (
-        string
+        string memory 
     ) {
         return keyColumns[_tableName];
     }
     
     ////// 구현
     function createIndexGroupName(
-        string _name
+        string memory _name
     ) public view returns (
-        string
+        string memory 
     ) {
         string memory s1 = ":index:";
         string memory result = s1.toSlice().concat(_name.toSlice());
@@ -106,9 +82,9 @@ contract KeyValueTable {
     
     ////// 구현
     function createRowKey(
-        string _keyColumnValue
+        string memory _keyColumnValue
     ) private view returns (
-        string
+        string memory 
     ) {
         string memory s1 = ":key:";
         string memory result = s1.toSlice().concat(_keyColumnValue.toSlice());
@@ -116,9 +92,9 @@ contract KeyValueTable {
     }
     
     function getModel(
-        string _name
+        string memory _name
     ) public view returns (
-        string
+        string memory 
     ) {
         string memory s0 = "{\n\t\"name\" : \"";
         string memory s1 = s0.toSlice().concat(_name.toSlice());
@@ -134,9 +110,9 @@ contract KeyValueTable {
     }
     
     function getIndexInfo(
-        string _name
+        string memory _name
     ) private view returns (
-        string
+        string memory 
     ) {
         string memory result;
         string memory tmp;
@@ -160,9 +136,9 @@ contract KeyValueTable {
     }
     
     function getColumnsInfo(
-        string _name
+        string memory _name
     ) public view returns (
-        string
+        string memory 
     ) {
         string memory result;
         string memory tmp;
@@ -188,24 +164,24 @@ contract KeyValueTable {
     //////////////////////////////////////////////////////////////////////////////
     
     function addColumn(
-        string _tableName,
-        string _columnName,
-        string _type
+        string memory _tableName,
+        string memory _columnName,
+        string memory _type
     ) public returns (
-        string
+        string memory 
     ) {
         require(existColumn(_tableName, _columnName) == false);
         columns[_tableName].push(Column(_columnName,_type));
     }
     
     function existColumn(
-        string _tableName,
-        string _columnName
+        string memory _tableName,
+        string memory _columnName
     ) private returns (
         bool
     ) {
         for(uint i=0; i<columns[_tableName].length; i++) {
-            if(keccak256(columns[_tableName][i].name) == keccak256(_columnName)) {
+            if(keccak256(abi.encodePacked(columns[_tableName][i].name)) == keccak256(abi.encodePacked(_columnName))) {
                 return true;
             }
         }
@@ -213,13 +189,13 @@ contract KeyValueTable {
     }
     
     function getColumn(
-        string _tableName,
-        string _columnName
+        string memory _tableName,
+        string memory _columnName
     ) private view returns (
-        Column
+        Column memory 
     ) {
         for(uint i=0; i<columns[_tableName].length; i++) {
-            if(keccak256(columns[_tableName][i].name) == keccak256(_columnName)) {
+            if(keccak256(abi.encodePacked(columns[_tableName][i].name)) == keccak256(abi.encodePacked(_columnName))) {
                 return columns[_tableName][i];
             }
         }
@@ -227,27 +203,27 @@ contract KeyValueTable {
     }
     
     function isKeyColumn(
-        string _tableName,
-        string _columnName
+        string memory _tableName,
+        string memory _columnName
     ) private returns (
         bool
     ) {
-        if(keccak256(keyColumns[_tableName]) == keccak256(_columnName)) {
+        if(keccak256(abi.encodePacked(keyColumns[_tableName])) == keccak256(abi.encodePacked(_columnName))) {
             return true;
         }
         return false;
     }
     
     function dropColumn(
-        string _tableName,
-        string _columnName
+        string memory _tableName,
+        string memory _columnName
     ) public returns (
-        string
+        string memory 
     ) {
         require(isKeyColumn(_tableName, _columnName) == false);
         
         for(uint i=0; i<columns[_tableName].length; i++) {
-            if(keccak256(columns[_tableName][i].name) == keccak256(_columnName)) {
+            if(keccak256(abi.encodePacked(columns[_tableName][i].name)) == keccak256(abi.encodePacked(_columnName))) {
                 delete(columns[_tableName][i]);
                 return "Drop Column Success";
             }
@@ -258,24 +234,24 @@ contract KeyValueTable {
     //////////////////////////////////////////////////////////////////////////////
     
     function addIndex(
-        string _tableName,
-        string _indexName,
-        string _columnName
+        string memory _tableName,
+        string memory _indexName,
+        string memory _columnName
     ) public returns (
-        string
+        string memory 
     ) {
         require(existIndex(_tableName, _indexName) == false);
         indices[_tableName].push(Index(_indexName, _columnName));
     }
     
     function existIndex(
-        string _tableName,
-        string _indexName
+        string memory _tableName,
+        string memory _indexName
     ) private returns (
         bool
     ) {
         for(uint i=0; i<indices[_tableName].length; i++) {
-            if(keccak256(indices[_tableName][i].name) == keccak256(_indexName)) {
+            if(keccak256(abi.encodePacked(indices[_tableName][i].name)) == keccak256(abi.encodePacked(_indexName))) {
                 return true;
             }
         }
@@ -283,13 +259,13 @@ contract KeyValueTable {
     }
     
     function getIndex(
-        string _tableName,
-        string _indexName
+        string memory _tableName,
+        string memory _indexName
     ) private view returns (
-        Index
+        Index memory 
     ) {
         for(uint i=0; i<indices[_tableName].length; i++) {
-            if(keccak256(indices[_tableName][i].name) == keccak256(_indexName)) {
+            if(keccak256(abi.encodePacked(indices[_tableName][i].name)) == keccak256(abi.encodePacked(_indexName))) {
                 return indices[_tableName][i];
             }
         }
@@ -297,15 +273,15 @@ contract KeyValueTable {
     }
     
     function dropIndex(
-        string _tableName,
-        string _indexName
+        string memory _tableName,
+        string memory _indexName
     ) public returns (
-        string
+        string memory 
     ) {
         require(isKeyColumn(_tableName, _indexName) == false);
         
         for(uint i=0; i<indices[_tableName].length; i++) {
-            if(keccak256(indices[_tableName][i].name) == keccak256(_indexName)) {
+            if(keccak256(abi.encodePacked(indices[_tableName][i].name)) == keccak256(abi.encodePacked(_indexName))) {
                 delete(indices[_tableName][i]);
                 return "Drop Index success";
             }
@@ -317,11 +293,11 @@ contract KeyValueTable {
      * 없으면 추가하고, 있으면 에러
      */
     function add(
-        string _name,
-        string _column,
-        string _value
+        string memory _name,
+        string memory _column,
+        string memory _value
     ) public returns (
-        string
+        string memory 
     ) {
         require( existValue(_name, _column) == false );
         rows[_name][_column] = _value;
@@ -332,16 +308,16 @@ contract KeyValueTable {
      * 삭제한다.
      */
     function removeRow(
-        string _name
+        string memory _name
         // string _column
     ) public returns (
-        string
+        string memory 
     ) {
         // require( existValue(_name) == true);
         // rows[_id] = Row("", "");
         
         for(uint i=0; i<rowNames.length; i++) {
-            if(keccak256(rowNames[i]) == keccak256(_name)) {
+            if(keccak256(abi.encodePacked(rowNames[i])) == keccak256(abi.encodePacked(_name))) {
                 delete(rowNames[i]);
                 return "Remove Row Success";
             }
@@ -350,18 +326,18 @@ contract KeyValueTable {
     }
     
     function get(
-        string _name,
-        string _column
+        string memory _name,
+        string memory _column
     ) public view returns (
-        string
+        string memory 
     ) {
         // require( existRow(_name) == true );
         return rows[_name][_column];
     }
     
     function existValue(
-        string _name,
-        string _column
+        string memory _name,
+        string memory _column
     ) public view returns (
         bool
     ) {
@@ -376,36 +352,37 @@ contract KeyValueTable {
      * 있으면 갱신하고, 없으면 에러
      */
     function update(
-        string _name,
-        string _column,
-        string _value
+        string memory _name,
+        string memory _column,
+        string memory _value
     ) public returns (
-        string
+        string memory 
     ) {
         require( existValue(_name, _column) == true);
         rows[_name][_column] = _value;
     }
     
     function keies(
-        string _name
+        string memory _name
     ) public view returns (
-        string[]
+        string[] memory 
     ) {
-        string[] result;
+        string[] memory result;
         
         for(uint i=0; i<columns[_name].length; i++) {
             string memory groupName = createRowKey(columns[_name][i].name);
             string memory tmpKey = keys[_name].toSlice().concat(groupName.toSlice());
-            result.push(tmpKey);
+            // result.push(tmpKey);
+            result[i] = tmpKey;
         }
         
         return result;
     }
     
     function getAllRows(
-        string _tableName
+        string memory _tableName
     ) public view returns (
-        string[] // Row[]
+        string[] memory  // Row[]
     ) {
         // string memory rowKey = createRowKey(key);
         // return rowKey;
@@ -455,9 +432,4 @@ contract KeyValueTable {
         
     }
     
-    //////////////////////// AVL tree
-    
-   
-    
-    /////////////////////////////////
 }
