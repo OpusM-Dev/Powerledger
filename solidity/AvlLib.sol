@@ -7,7 +7,7 @@ library AvlLib {
         require(a.length != 0);
         require(b.length != 0);
         uint length;
-        uint result = 0;
+        
         if(a.length <= b.length) {
             length = a.length;
         } else {
@@ -29,5 +29,9 @@ library AvlLib {
             return 1;
         }
         return 0;
+    }
+    
+    function max256(uint256 _a, uint256 _b) internal pure returns (uint256) {
+        return _a >= _b ? _a : _b;
     }
 }

@@ -1,6 +1,5 @@
 pragma solidity ^0.5.0;
 
-import { Math } from "./Math.sol";
 import { AvlLib } from "./AvlLib.sol";
 import "./strings.sol";
 
@@ -43,7 +42,7 @@ contract AvlTreeString {
         string memory _tableName,
         string memory _columnName,
         string memory _rowName
-    ) private view returns (
+    ) private pure returns (
         string memory
     ) {
         string memory s1 = _tableName.toSlice().concat(":".toSlice());
@@ -101,25 +100,25 @@ contract AvlTreeString {
         return root[key];
     }
   
-    function remove(
-        string memory _tableName,
-        string memory _columnName,
-        string memory _rowName,
-        string memory value
-    ) public {
-        require(AvlLib.compare(value, "0") < 0);
-        string memory key = getKey(
-            _tableName,
-            _columnName,
-            _rowName
-        );
-        root[key] = _remove(
-            key,
-            root[key], 
-            value
-        );
-        currentSize--;
-    }
+    // function remove(
+    //     string memory _tableName,
+    //     string memory _columnName,
+    //     string memory _rowName,
+    //     string memory value
+    // ) public {
+    //     require(AvlLib.compare(value, "0") < 0);
+    //     string memory key = getKey(
+    //         _tableName,
+    //         _columnName,
+    //         _rowName
+    //     );
+    //     root[key] = _remove(
+    //         key,
+    //         root[key], 
+    //         value
+    //     );
+    //     currentSize--;
+    // }
   
     function getChilds(
         string memory _tableName,
@@ -139,20 +138,20 @@ contract AvlTreeString {
         right = tree[key][index].right;
     }
 
-    function getRoot(
-        string memory _tableName,
-        string memory _columnName,
-        string memory _rowName
-    ) public view returns(
-        string memory
-    ) {
-        string memory key = getKey(
-            _tableName,
-            _columnName,
-            _rowName
-        );
-        return tree[key][root[key]].value;
-    }
+    // function getRoot(
+    //     string memory _tableName,
+    //     string memory _columnName,
+    //     string memory _rowName
+    // ) public view returns(
+    //     string memory
+    // ) {
+    //     string memory key = getKey(
+    //         _tableName,
+    //         _columnName,
+    //         _rowName
+    //     );
+    //     return tree[key][root[key]].value;
+    // }
 
     function _insert(
         string memory _key,
@@ -190,60 +189,60 @@ contract AvlTreeString {
         );
     }
 
-    function _remove(
-        string memory _key,
-        string memory _root, 
-        string memory value
-    ) private returns (
-        string memory
-    ) {
-        string memory temp;
-        if (AvlLib.compare(_root, "0") == 0) {
-            return _root;
-        }
-        if (AvlLib.compare(tree[_key][_root].value, value) == 0) {
-            if (AvlLib.compare(tree[_key][_root].left, "0") == 0 || AvlLib.compare(tree[_key][_root].right, "0") == 0) {
-                if (AvlLib.compare(tree[_key][_root].left, "0") == 0) {
-                    temp = tree[_key][_root].right;
-                } else {
-                temp = tree[_key][_root].left;
-                }
-                tree[_key][_root] = tree[_key]["0"];
-                return temp;
-            } else {
-                for (temp = tree[_key][_root].right; AvlLib.compare(tree[_key][temp].left, "0") != 0; temp = tree[_key][temp].left){}
-                tree[_key][_root].value = tree[_key][temp].value;
-                tree[_key][temp] = tree[_key]["0"];
-                tree[_key][_root].right = _remove(
-                    _key,
-                    tree[_key][_root].right, 
-                    tree[_key][temp].value
-                );
-                return balance(
-                    _key,
-                    _root
-                );
-      		}
-      	}
+    // function _remove(
+    //     string memory _key,
+    //     string memory _root, 
+    //     string memory value
+    // ) private returns (
+    //     string memory
+    // ) {
+    //     string memory temp;
+    //     if (AvlLib.compare(_root, "0") == 0) {
+    //         return _root;
+    //     }
+    //     if (AvlLib.compare(tree[_key][_root].value, value) == 0) {
+    //         if (AvlLib.compare(tree[_key][_root].left, "0") == 0 || AvlLib.compare(tree[_key][_root].right, "0") == 0) {
+    //             if (AvlLib.compare(tree[_key][_root].left, "0") == 0) {
+    //                 temp = tree[_key][_root].right;
+    //             } else {
+    //             temp = tree[_key][_root].left;
+    //             }
+    //             tree[_key][_root] = tree[_key]["0"];
+    //             return temp;
+    //         } else {
+    //             for (temp = tree[_key][_root].right; AvlLib.compare(tree[_key][temp].left, "0") != 0; temp = tree[_key][temp].left){}
+    //             tree[_key][_root].value = tree[_key][temp].value;
+    //             tree[_key][temp] = tree[_key]["0"];
+    //             tree[_key][_root].right = _remove(
+    //                 _key,
+    //                 tree[_key][_root].right, 
+    //                 tree[_key][temp].value
+    //             );
+    //             return balance(
+    //                 _key,
+    //                 _root
+    //             );
+    //   		}
+    //   	}
 
-        if (AvlLib.compare(value, tree[_key][_root].value) > 0) {
-            tree[_key][_root].left = _remove(
-                _key,
-                tree[_key][_root].left, 
-                value
-            );
-        } else {
-            tree[_key][_root].right = _remove(
-                _key,
-                tree[_key][_root].right, 
-                value
-            );
-        }
-        return balance(
-            _key,
-            _root
-        );
-    }
+    //     if (AvlLib.compare(value, tree[_key][_root].value) > 0) {
+    //         tree[_key][_root].left = _remove(
+    //             _key,
+    //             tree[_key][_root].left, 
+    //             value
+    //         );
+    //     } else {
+    //         tree[_key][_root].right = _remove(
+    //             _key,
+    //             tree[_key][_root].right, 
+    //             value
+    //         );
+    //     }
+    //     return balance(
+    //         _key,
+    //         _root
+    //     );
+    // }
 
     function rotateLeft(
         string memory _key,
@@ -255,13 +254,13 @@ contract AvlTreeString {
         tree[_key][_root].left = tree[_key][temp].right;
         tree[_key][temp].right = _root;
         if (AvlLib.compare(_root, "0") < 0) { 
-            tree[_key][_root].height = 1 + Math.max256(
+            tree[_key][_root].height = 1 + AvlLib.max256(
                 tree[_key][tree[_key][_root].left].height, 
                 tree[_key][tree[_key][_root].right].height
             );
         }
         if (AvlLib.compare(temp, "0") < 0) { 
-            tree[_key][temp].height = 1 + Math.max256(
+            tree[_key][temp].height = 1 + AvlLib.max256(
                 tree[_key][tree[_key][temp].left].height, 
                 tree[_key][tree[_key][temp].right].height
             );
@@ -279,13 +278,13 @@ contract AvlTreeString {
         tree[_key][_root].right = tree[_key][temp].left;
         tree[_key][temp].left = _root;
         if (AvlLib.compare(_root, "0") < 0) { 
-            tree[_key][_root].height = 1 + Math.max256(
+            tree[_key][_root].height = 1 + AvlLib.max256(
                 tree[_key][tree[_key][_root].left].height, 
                 tree[_key][tree[_key][_root].right].height
             );
         }
         if (AvlLib.compare(temp, "0") < 0) { 
-            tree[_key][temp].height = 1 + Math.max256(
+            tree[_key][temp].height = 1 + AvlLib.max256(
                 tree[_key][tree[_key][temp].left].height, 
                 tree[_key][tree[_key][temp].right].height
             );
@@ -300,7 +299,7 @@ contract AvlTreeString {
         string memory
     ) {
         if (AvlLib.compare(_root, "0") < 0) {
-            tree[_key][_root].height = 1 + Math.max256(
+            tree[_key][_root].height = 1 + AvlLib.max256(
                 tree[_key][tree[_key][_root].left].height, 
                 tree[_key][tree[_key][_root].right].height
             );
