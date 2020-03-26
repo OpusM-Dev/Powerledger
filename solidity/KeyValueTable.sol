@@ -2,11 +2,12 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import "./strings.sol";
-import { Math } from "./Math.sol";
 import { AvlLib } from "./AvlLib.sol";
 
 contract KeyValueTable {
     using strings for *;
+    
+    event L(string _name, string _column, string _value, address c);
     
     struct Column {
         string name;
@@ -22,7 +23,7 @@ contract KeyValueTable {
     string[] tableNames;
     // Key : Table's name / Value : KeyColumn
     mapping(string=>string) keyColumns;
-    mapping(string=>string) keys;
+    mapping(string=>string) key;
     // Key : Table's name / Value : 
     mapping(string=>Column[]) columns;
     mapping(string=>Index[]) indices;
@@ -37,15 +38,13 @@ contract KeyValueTable {
         bool tmp = existTable(_name);
         require(tmp == false);
         tableNames.push(_name);
-        keys[_name] = "table:".toSlice().concat(_name.toSlice());
+        key[_name] = "table:".toSlice().concat(_name.toSlice());
         
         keyColumns[_name] = _keyColumn;
         
-        // columns[_name].push(Column(_keyColumn, "string"));
-        // indices[_name].push(Index(_name, _keyColumn));
         addColumn(_name, _keyColumn, "string");
         addIndex(_name, _name, _keyColumn);
-        keys[_name] = "table:".toSlice().concat(_name.toSlice());
+        key[_name] = "table:".toSlice().concat(_name.toSlice());
     }
     
     function existTable(
@@ -293,6 +292,7 @@ contract KeyValueTable {
      * 없으면 추가하고, 있으면 에러
      */
     function add(
+        address _contractAddr,
         string memory _name,
         string memory _column,
         string memory _value
@@ -302,6 +302,13 @@ contract KeyValueTable {
         require( existValue(_name, _column) == false );
         rows[_name][_column] = _value;
         rowNames.push(_name);
+        
+        (bool success, bytes memory data) = address(_contractAddr).call(abi.encodeWithSignature("insert(string)", _value));
+        
+        if(!success) {
+            revert();
+        }
+        
         return "Add Row Success";
     }
     /**
@@ -313,8 +320,6 @@ contract KeyValueTable {
     ) public returns (
         string memory 
     ) {
-        // require( existValue(_name) == true);
-        // rows[_id] = Row("", "");
         
         for(uint i=0; i<rowNames.length; i++) {
             if(keccak256(abi.encodePacked(rowNames[i])) == keccak256(abi.encodePacked(_name))) {
@@ -362,7 +367,7 @@ contract KeyValueTable {
         rows[_name][_column] = _value;
     }
     
-    function keies(
+    function keys(
         string memory _name
     ) public view returns (
         string[] memory 
@@ -371,7 +376,7 @@ contract KeyValueTable {
         
         for(uint i=0; i<columns[_name].length; i++) {
             string memory groupName = createRowKey(columns[_name][i].name);
-            string memory tmpKey = keys[_name].toSlice().concat(groupName.toSlice());
+            string memory tmpKey = key[_name].toSlice().concat(groupName.toSlice());
             // result.push(tmpKey);
             result[i] = tmpKey;
         }
