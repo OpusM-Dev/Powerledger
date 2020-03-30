@@ -1,0 +1,1 @@
+geth --networkid 4649 --nodiscover --datadir ./ --allow-insecure-unlock --rpc --rpcaddr "127.0.0.1" --rpcport 8545 --rpccorsdomain "*" --rpcapi "admin,db,eth,debug,miner,net,shh,txpool,personal,web3" --unlock 0 --password ./password --verbosity 5 2>> ./geth.log &
