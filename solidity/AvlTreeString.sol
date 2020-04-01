@@ -1,7 +1,10 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.1;
 
 import { AvlLib } from "./AvlLib.sol";
 import "./strings.sol";
+
+//Function signatures
+//"create(string,string)getKey(string,string)search(string,string,string)insert(string,string,string)remove(string,string,string)getChilds(string,string,string)getRoot(string,string)"
 
 contract AvlTreeString {
     using strings for *;
@@ -20,13 +23,11 @@ contract AvlTreeString {
 
     function create(
         string memory _tableName,
-        string memory _columnName,
-        string memory _rowName
+        string memory _columnName
     ) public {
         string memory key = getKey(
             _tableName,
-            _columnName,
-            _rowName
+            _columnName
         );
         
         tree[key]["0"] = Node({
@@ -40,23 +41,19 @@ contract AvlTreeString {
     
     function getKey(
         string memory _tableName,
-        string memory _columnName,
-        string memory _rowName
+        string memory _columnName
     ) private pure returns (
         string memory
     ) {
         string memory s1 = _tableName.toSlice().concat(":".toSlice());
         string memory s2 = s1.toSlice().concat(_columnName.toSlice());
-        string memory s3 = s2.toSlice().concat(":".toSlice());
-        string memory s4 = s3.toSlice().concat(_rowName.toSlice());
         
-        return s4;
+        return s2;
     }
     
     function search(
         string memory _tableName,
         string memory _columnName,
-        string memory _rowName,
         string memory value
     ) public view returns (
         bool
@@ -64,8 +61,7 @@ contract AvlTreeString {
         require(AvlLib.compare(value, "0") < 0);
         string memory key = getKey(
             _tableName,
-            _columnName,
-            _rowName
+            _columnName
         );
         if (AvlLib.compare(root[key], "0") == 0) return false;
     
@@ -80,7 +76,6 @@ contract AvlTreeString {
     function insert(
         string memory _tableName,
         string memory _columnName,
-        string memory _rowName,
         string memory value
     ) public returns (
         string memory
@@ -88,8 +83,7 @@ contract AvlTreeString {
         require(AvlLib.compare(value, "0") < 0);
         string memory key = getKey(
             _tableName,
-            _columnName,
-            _rowName
+            _columnName
         );
         root[key] = _insert(
             key,
@@ -100,30 +94,27 @@ contract AvlTreeString {
         return root[key];
     }
   
-    // function remove(
-    //     string memory _tableName,
-    //     string memory _columnName,
-    //     string memory _rowName,
-    //     string memory value
-    // ) public {
-    //     require(AvlLib.compare(value, "0") < 0);
-    //     string memory key = getKey(
-    //         _tableName,
-    //         _columnName,
-    //         _rowName
-    //     );
-    //     root[key] = _remove(
-    //         key,
-    //         root[key], 
-    //         value
-    //     );
-    //     currentSize--;
-    // }
+    function remove(
+        string memory _tableName,
+        string memory _columnName,
+        string memory value
+    ) public {
+        require(AvlLib.compare(value, "0") < 0);
+        string memory key = getKey(
+            _tableName,
+            _columnName
+        );
+        root[key] = _remove(
+            key,
+            root[key], 
+            value
+        );
+        currentSize--;
+    }
   
     function getChilds(
         string memory _tableName,
         string memory _columnName,
-        string memory _rowName,
         string memory index
     ) public view  returns (
         string memory left, 
@@ -131,27 +122,24 @@ contract AvlTreeString {
     ) {
         string memory key = getKey(
             _tableName,
-            _columnName,
-            _rowName
+            _columnName
         );
         left = tree[key][index].left;
         right = tree[key][index].right;
     }
 
-    // function getRoot(
-    //     string memory _tableName,
-    //     string memory _columnName,
-    //     string memory _rowName
-    // ) public view returns(
-    //     string memory
-    // ) {
-    //     string memory key = getKey(
-    //         _tableName,
-    //         _columnName,
-    //         _rowName
-    //     );
-    //     return tree[key][root[key]].value;
-    // }
+    function getRoot(
+        string memory _tableName,
+        string memory _columnName
+    ) public view returns(
+        string memory
+    ) {
+        string memory key = getKey(
+            _tableName,
+            _columnName
+        );
+        return tree[key][root[key]].value;
+    }
 
     function _insert(
         string memory _key,
@@ -189,60 +177,60 @@ contract AvlTreeString {
         );
     }
 
-    // function _remove(
-    //     string memory _key,
-    //     string memory _root, 
-    //     string memory value
-    // ) private returns (
-    //     string memory
-    // ) {
-    //     string memory temp;
-    //     if (AvlLib.compare(_root, "0") == 0) {
-    //         return _root;
-    //     }
-    //     if (AvlLib.compare(tree[_key][_root].value, value) == 0) {
-    //         if (AvlLib.compare(tree[_key][_root].left, "0") == 0 || AvlLib.compare(tree[_key][_root].right, "0") == 0) {
-    //             if (AvlLib.compare(tree[_key][_root].left, "0") == 0) {
-    //                 temp = tree[_key][_root].right;
-    //             } else {
-    //             temp = tree[_key][_root].left;
-    //             }
-    //             tree[_key][_root] = tree[_key]["0"];
-    //             return temp;
-    //         } else {
-    //             for (temp = tree[_key][_root].right; AvlLib.compare(tree[_key][temp].left, "0") != 0; temp = tree[_key][temp].left){}
-    //             tree[_key][_root].value = tree[_key][temp].value;
-    //             tree[_key][temp] = tree[_key]["0"];
-    //             tree[_key][_root].right = _remove(
-    //                 _key,
-    //                 tree[_key][_root].right, 
-    //                 tree[_key][temp].value
-    //             );
-    //             return balance(
-    //                 _key,
-    //                 _root
-    //             );
-    //   		}
-    //   	}
+    function _remove(
+        string memory _key,
+        string memory _root, 
+        string memory value
+    ) private returns (
+        string memory
+    ) {
+        string memory temp;
+        if (AvlLib.compare(_root, "0") == 0) {
+            return _root;
+        }
+        if (AvlLib.compare(tree[_key][_root].value, value) == 0) {
+            if (AvlLib.compare(tree[_key][_root].left, "0") == 0 || AvlLib.compare(tree[_key][_root].right, "0") == 0) {
+                if (AvlLib.compare(tree[_key][_root].left, "0") == 0) {
+                    temp = tree[_key][_root].right;
+                } else {
+                temp = tree[_key][_root].left;
+                }
+                tree[_key][_root] = tree[_key]["0"];
+                return temp;
+            } else {
+                for (temp = tree[_key][_root].right; AvlLib.compare(tree[_key][temp].left, "0") != 0; temp = tree[_key][temp].left){}
+                tree[_key][_root].value = tree[_key][temp].value;
+                tree[_key][temp] = tree[_key]["0"];
+                tree[_key][_root].right = _remove(
+                    _key,
+                    tree[_key][_root].right, 
+                    tree[_key][temp].value
+                );
+                return balance(
+                    _key,
+                    _root
+                );
+      		}
+      	}
 
-    //     if (AvlLib.compare(value, tree[_key][_root].value) > 0) {
-    //         tree[_key][_root].left = _remove(
-    //             _key,
-    //             tree[_key][_root].left, 
-    //             value
-    //         );
-    //     } else {
-    //         tree[_key][_root].right = _remove(
-    //             _key,
-    //             tree[_key][_root].right, 
-    //             value
-    //         );
-    //     }
-    //     return balance(
-    //         _key,
-    //         _root
-    //     );
-    // }
+        if (AvlLib.compare(value, tree[_key][_root].value) > 0) {
+            tree[_key][_root].left = _remove(
+                _key,
+                tree[_key][_root].left, 
+                value
+            );
+        } else {
+            tree[_key][_root].right = _remove(
+                _key,
+                tree[_key][_root].right, 
+                value
+            );
+        }
+        return balance(
+            _key,
+            _root
+        );
+    }
 
     function rotateLeft(
         string memory _key,
